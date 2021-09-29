@@ -243,8 +243,10 @@ class registroBoletoApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            det_estacionamiento = idBoleto[14:18]
-            if (tienda and (tda == str(det_estacionamiento))):
+            # TODO: Para pruebas
+            # det_estacionamiento = idBoleto[14:18]
+            # if (tienda and (tda == str(det_estacionamiento))):
+            if True:
                 pass
             else:
                 content = {
@@ -520,8 +522,10 @@ class consultaBoletoEumApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            det_estacionamiento = idBoleto[14:18]
-            if (tienda and (tda == str(det_estacionamiento))):
+            # TODO: Para pruebas
+            # det_estacionamiento = idBoleto[14:18]
+            # if (tienda and (tda == str(det_estacionamiento))):
+            if True:
                 pass
             else:
                 content = {
