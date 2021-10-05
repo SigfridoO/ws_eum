@@ -360,8 +360,12 @@ class registroTransaccionApiView(APIView):
         no_provedor = self.request.data.get('registroTransaccion').get('no_provedor')
         det_estacionamiento = self.request.data.get('registroTransaccion').get('det_estacionamiento')
         folio_boleto = self.request.data.get('registroTransaccion').get('folio_boleto')
+<<<<<<< HEAD
         entrada = self.request.data.get('registroTransaccion').get('entrada')
         fecha_expedicion = self.request.data.get('registroTransaccion').get('fecha_expedicion')
+=======
+        entrada = self.request.data.get('registroTransaccion').get('folio_boleto')
+>>>>>>> Modificación de vistas
         fecha_pago = self.request.data.get('registroTransaccion').get('fecha_pago')
         codigo = self.request.data.get('registroTransaccion').get('codigo')
         registrado = self.request.data.get('registroTransaccion').get('registrado')
@@ -375,7 +379,14 @@ class registroTransaccionApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
+<<<<<<< HEAD
             if tienda:
+=======
+            # TODO: Para pruebas
+            # det_estacionamiento = idBoleto[14:18]
+            # if (tienda and (tda == str(det_estacionamiento))):
+            if True:
+>>>>>>> Modificación de vistas
                 pass
             else:
                 content = {
@@ -1068,6 +1079,12 @@ class revBoletoPagadoApiView(APIView):
 #@method_decorator(staff_member_required, name="dispatch")
 
 
+<<<<<<< HEAD
+=======
+from rest_framework import serializers
+from .serializers import  BoletoSerializer, TransaccionSerializer
+
+>>>>>>> Modificación de vistas
 class consultarTransaccion(APIView):
     def post(self, request):
 
@@ -1103,11 +1120,17 @@ class consultarTransaccion(APIView):
                 # TODO: El corregir el modelo boleto ya que estos pueden no ser únicos
                 print ('{}: Boleto {}'.format(self, boleto))
                 idBoleto = boleto[0].id
+<<<<<<< HEAD
                 print ('{}: Boleto {}'.format(self, idBoleto))
 
                 # obtener transacciones
                 transacciones = Transaccion.objects.filter(folio_boleto = idBoleto)
                 print ('{}: Transacciones : {}'.format(self, transacciones))
+=======
+
+                # obtener transacciones
+                transacciones = Transaccion.objects.filter(folio_boleto = idBoleto)
+>>>>>>> Modificación de vistas
                 
                 if transacciones: 
                     # TODO: Corregir modelo transacciones ya que unicamente admite una transacción
@@ -1133,4 +1156,8 @@ class consultarTransaccion(APIView):
             } )
 
     def __str__(self):
+<<<<<<< HEAD
         return "{} ".format( 'Transacciones'.ljust( 15 ) )
+=======
+        return "{} ".format( 'Transacciones'.ljust( 15 ) )
+>>>>>>> Modificación de vistas
