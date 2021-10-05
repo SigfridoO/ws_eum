@@ -325,7 +325,7 @@ class registroTransaccionApiView(APIView):
         no_provedor = self.request.data.get('registroTransaccion').get('no_provedor')
         det_estacionamiento = self.request.data.get('registroTransaccion').get('det_estacionamiento')
         folio_boleto = self.request.data.get('registroTransaccion').get('folio_boleto')
-        entrada = self.request.data.get('registroTransaccion').get('entrada')
+        entrada = self.request.data.get('registroTransaccion').get('folio_boleto')
         fecha_pago = self.request.data.get('registroTransaccion').get('fecha_pago')
         codigo = self.request.data.get('registroTransaccion').get('codigo')
         registrado = self.request.data.get('registroTransaccion').get('registrado')
@@ -339,8 +339,10 @@ class registroTransaccionApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            det_estacionamiento = idBoleto[14:18]
-            if (tienda and (tda == str(det_estacionamiento))):
+            # TODO: Para pruebas
+            # det_estacionamiento = idBoleto[14:18]
+            # if (tienda and (tda == str(det_estacionamiento))):
+            if True:
                 pass
             else:
                 content = {
@@ -957,3 +959,72 @@ class revBoletoPagadoApiView(APIView):
 
 
 #@method_decorator(staff_member_required, name="dispatch")
+
+
+from rest_framework import serializers
+from .serializers import  BoletoSerializer, TransaccionSerializer
+
+class consultarTransaccion(APIView):
+    def post(self, request):
+
+        contenido = {}
+
+        datos = self.request.data.get('consultarTransaccion')
+
+        folio    = datos.get('folio')
+        entrada  = datos.get('entrada')
+        fecha    = datos.get('fecha')
+        tienda   = datos.get('tienda')
+
+        print ('{}:  folio {}, entrada {}, fecha {}, tienda {}'
+            .format(self, folio, entrada, fecha, tienda))
+
+        # obtener id de la tienda
+        tienda = Tienda.objects.filter(id_tienda=tienda, activo=True)
+        print ('{}: tienda {}'.format(self, tienda))
+
+        if tienda:
+            idTienda  = tienda[0].id
+            print ('{}: tienda_id {}'.format(self, idTienda))
+
+            # obtenerBoleto
+            
+            boleto = Boleto.objects.filter(folio_boleto = folio,
+                                            entrada = entrada,
+                                            fecha_expedicion_boleto = fecha,
+                                            tienda_id = idTienda
+                                                )
+
+            if boleto:
+                # TODO: El corregir el modelo boleto ya que estos pueden no ser únicos
+                print ('{}: Boleto {}'.format(self, boleto))
+                idBoleto = boleto[0].id
+
+                # obtener transacciones
+                transacciones = Transaccion.objects.filter(folio_boleto = idBoleto)
+                
+                if transacciones: 
+                    # TODO: Corregir modelo transacciones ya que unicamente admite una transacción
+                    print ('{}: Transacciones encontradas: {}'.format(self, transacciones))
+                    serializer = TransaccionSerializer(transacciones, many=True)
+                    return Response({'transacciones' : serializer.data})
+                else:
+                    contenido = {
+                        'mensaje': 'No se encontraron transacciones'
+                    }
+
+            else:
+                contenido = {
+                    'mensaje': 'No se encontro el boleto'
+                }
+
+        else:
+            contenido = {
+                'mensaje': 'No se encontro la tienda'
+            }
+        return Response({
+                'consultarTransaccion': contenido
+            } )
+
+    def __str__(self):
+        return "{} ".format( 'Transacciones'.ljust( 15 ) )
