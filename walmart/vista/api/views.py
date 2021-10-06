@@ -354,12 +354,13 @@ class registroTransaccionApiView(APIView):
                 }
                 return Response(content)
 
+            print ('Imprimiendo la fecha de pago', fecha_pago )
             fechahora_pago = datetime.strptime(fecha_pago, '%d-%m-%Y %H:%M:%S')
             print("fecha_hora: ",fechahora_pago)
             print("entrada",entrada)
 
             equipo = Equipo.objects.filter(id=1)
-            folio = Boleto.objects.filter(folio_boleto=folio_boleto)
+            folio = Boleto.objects.filter(id=folio_boleto)
             transaccion = Transaccion.objects.create(     no_provedor=no_provedor,
                                                 det_estacionamiento=det_estacionamiento,
                                                 fecha_pago=fechahora_pago,
@@ -999,9 +1000,11 @@ class consultarTransaccion(APIView):
                 # TODO: El corregir el modelo boleto ya que estos pueden no ser únicos
                 print ('{}: Boleto {}'.format(self, boleto))
                 idBoleto = boleto[0].id
+                print ('{}: Boleto {}'.format(self, idBoleto))
 
                 # obtener transacciones
                 transacciones = Transaccion.objects.filter(folio_boleto = idBoleto)
+                print ('{}: Transacciones : {}'.format(self, transacciones))
                 
                 if transacciones: 
                     # TODO: Corregir modelo transacciones ya que unicamente admite una transacción
