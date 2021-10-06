@@ -92,7 +92,7 @@ class Transaccion(models.Model):
         ordering = ['-created']
 
     def __str__(self):
-        return str(self.created) + " " + str(self.monto) + " " + str(self.codigo) 
+        return str(self.id) + " " + str(self.created) + " " + str(self.monto) + " " + str(self.codigo) 
 
 
 
