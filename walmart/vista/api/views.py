@@ -360,6 +360,7 @@ class registroTransaccionApiView(APIView):
             print("entrada",entrada)
 
             equipo = Equipo.objects.filter(id=1)
+            #folio = Boleto.objects.filter(folio_boleto=folio_boleto)
             folio = Boleto.objects.filter(id=folio_boleto)
             transaccion = Transaccion.objects.create(     no_provedor=no_provedor,
                                                 det_estacionamiento=det_estacionamiento,
