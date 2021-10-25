@@ -11,6 +11,9 @@ from .Calculador import Calculador
 from django.utils.timezone import now
 import random
 
+#Vista consultarTransaccion2
+from rest_framework import serializers
+from .serializers import  BoletoSerializer, TransaccionSerializer
 
 # Create your views here.
 tiempo_tolerancia = 15
@@ -86,6 +89,41 @@ class consultaBoletoApiView(APIView):
         #print("Dia: ",idBoleto[2:4])
         calculador = Calculador()
         try:
+            print (len(idBoleto))
+            if len(idBoleto) == 20:
+                proovedor = idBoleto[0:2]
+                if int(proovedor) == 12:
+                    pass
+                else:
+                    content = {
+                    "consultaBoleto": {
+                    "idBoleto": idBoleto,
+                    "impresionPantalla": "Gracias por su compra",
+                    "impresionTicket": "Compre Walmart",
+                    "codRepuesta": "01",
+                    "codigoError": "02",
+                    "descripcionError": "BOLETO NO VALIDO",
+                    "numAutorizacion": ""
+                    }
+                    }
+                    print("Proveedor invalido:",idBoleto)
+                    return Response(content)
+            else:
+                content = {
+                "consultaBoleto": {
+                "idBoleto": idBoleto,
+                "impresionPantalla": "Gracias por su compra",
+                "impresionTicket": "Compre Walmart",
+                "codRepuesta": "01",
+                "codigoError": "02",
+                "descripcionError": "BOLETO NO VALIDO",
+                "numAutorizacion": ""
+                }
+                }
+                print("Longitud de id incorrecta:",idBoleto)
+                return Response(content)
+
+
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
             det_estacionamiento = idBoleto[14:18]
@@ -101,7 +139,7 @@ class consultaBoletoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "04",
                 "descripcionError": "COBRO NO HABILITADO PARA ESTA TIENDA",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
                 return Response(content)
@@ -109,8 +147,8 @@ class consultaBoletoApiView(APIView):
 
             #Obtener datos
             proovedor = idBoleto[0:2]
-            dia_boleto = idBoleto[2:4]
-            mes_boleto = idBoleto[4:6]
+            mes_boleto = idBoleto[2:4]
+            dia_boleto = idBoleto[4:6]
             anio_boleto = idBoleto[6:8]
             hora_boleto = idBoleto[8:10]
             minuto_boleto = idBoleto[10:12]
@@ -144,7 +182,7 @@ class consultaBoletoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "03",
                 "descripcionError": "Boleto con tiempo de tolerancia vigente (15 MIN)",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
                 return Response(content)
@@ -187,7 +225,7 @@ class consultaBoletoApiView(APIView):
                     'idBoleto': idBoleto,
                     'impresionPantalla': "Gracias por su compra",
                     'impresionTicket': "Compre Walmart",
-                    'monto': float(monto),
+                    'monto': "{:.2f}".format(float(monto)),
                     'codRepuesta': "00",
                     'codigoError': "00",
                     'descripcionError': "",
@@ -203,7 +241,7 @@ class consultaBoletoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "02",
                 "descripcionError": "BOLETO NO VALIDO",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
 
                 }
@@ -218,7 +256,7 @@ class consultaBoletoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "02",
                 "descripcionError": "BOLETO NO VALIDO.",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
 
                 }
@@ -243,10 +281,7 @@ class registroBoletoApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            # TODO: Para pruebas
-            # det_estacionamiento = idBoleto[14:18]
-            # if (tienda and (tda == str(det_estacionamiento))):
-            if True:
+            if tienda:
                 pass
             else:
                 content = {
@@ -325,7 +360,8 @@ class registroTransaccionApiView(APIView):
         no_provedor = self.request.data.get('registroTransaccion').get('no_provedor')
         det_estacionamiento = self.request.data.get('registroTransaccion').get('det_estacionamiento')
         folio_boleto = self.request.data.get('registroTransaccion').get('folio_boleto')
-        entrada = self.request.data.get('registroTransaccion').get('folio_boleto')
+        entrada = self.request.data.get('registroTransaccion').get('entrada')
+        fecha_expedicion = self.request.data.get('registroTransaccion').get('fecha_expedicion')
         fecha_pago = self.request.data.get('registroTransaccion').get('fecha_pago')
         codigo = self.request.data.get('registroTransaccion').get('codigo')
         registrado = self.request.data.get('registroTransaccion').get('registrado')
@@ -339,10 +375,7 @@ class registroTransaccionApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            # TODO: Para pruebas
-            # det_estacionamiento = idBoleto[14:18]
-            # if (tienda and (tda == str(det_estacionamiento))):
-            if True:
+            if tienda:
                 pass
             else:
                 content = {
@@ -356,12 +389,12 @@ class registroTransaccionApiView(APIView):
 
             print ('Imprimiendo la fecha de pago', fecha_pago )
             fechahora_pago = datetime.strptime(fecha_pago, '%d-%m-%Y %H:%M:%S')
+            fechahora_expedicion = datetime.strptime(fecha_expedicion, '%d-%m-%Y %H:%M:%S')
             print("fecha_hora: ",fechahora_pago)
             print("entrada",entrada)
 
             equipo = Equipo.objects.filter(id=1)
-            #folio = Boleto.objects.filter(folio_boleto=folio_boleto)
-            folio = Boleto.objects.filter(id=folio_boleto)
+            folio = Boleto.objects.filter(folio_boleto = folio_boleto, fecha_expedicion_boleto = fechahora_expedicion, entrada = entrada)
             transaccion = Transaccion.objects.create(     no_provedor=no_provedor,
                                                 det_estacionamiento=det_estacionamiento,
                                                 fecha_pago=fechahora_pago,
@@ -428,10 +461,7 @@ class consultaTransaccionEumApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            # TODO: Para pruebas
-            # det_estacionamiento = idBoleto[14:18]
-            # if (tienda and (tda == str(det_estacionamiento))):
-            if True:
+            if tienda:
                 pass
             else:
                 content = {
@@ -528,10 +558,7 @@ class consultaBoletoEumApiView(APIView):
         if 1:
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
-            # TODO: Para pruebas
-            # det_estacionamiento = idBoleto[14:18]
-            # if (tienda and (tda == str(det_estacionamiento))):
-            if True:
+            if tienda:
                 pass
             else:
                 content = {
@@ -612,6 +639,40 @@ class notiBoletoPagadoApiView(APIView):
         #print("Dia: ",idBoleto[2:4])
         calculador = Calculador()
         try: #try
+            print (len(idBoleto))
+            if len(idBoleto) == 20:
+                proovedor = idBoleto[0:2]
+                if int(proovedor) == 12:
+                    pass
+                else:
+                    content = {
+                    "consultaBoleto": {
+                    "idBoleto": idBoleto,
+                    "impresionPantalla": "Gracias por su compra",
+                    "impresionTicket": "Compre Walmart",
+                    "codRepuesta": "01",
+                    "codigoError": "02",
+                    "descripcionError": "BOLETO NO VALIDO",
+                    "numAutorizacion": ""
+                    }
+                    }
+                    print("Proveedor invalido:",idBoleto)
+                    return Response(content)
+            else:
+                content = {
+                "consultaBoleto": {
+                "idBoleto": idBoleto,
+                "impresionPantalla": "Gracias por su compra",
+                "impresionTicket": "Compre Walmart",
+                "codRepuesta": "01",
+                "codigoError": "02",
+                "descripcionError": "BOLETO NO VALIDO",
+                "numAutorizacion": ""
+                }
+                }
+                print("Longitud de id incorrecta:",idBoleto)
+                return Response(content)
+
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
             det_estacionamiento = idBoleto[14:18]
@@ -627,7 +688,7 @@ class notiBoletoPagadoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "04",
                 "descripcionError": "COBRO NO HABILITADO PARA ESTA TIENDA",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
 
@@ -637,8 +698,8 @@ class notiBoletoPagadoApiView(APIView):
 
             #Obtener datos
             proovedor = idBoleto[0:2]
-            dia_boleto = idBoleto[2:4]
-            mes_boleto = idBoleto[4:6]
+            mes_boleto = idBoleto[2:4]
+            dia_boleto = idBoleto[4:6]
             anio_boleto = idBoleto[6:8]
             hora_boleto = idBoleto[8:10]
             minuto_boleto = idBoleto[10:12]
@@ -707,7 +768,7 @@ class notiBoletoPagadoApiView(APIView):
                 monto_resultado = resultado[0]
                 minutos_transcurridos_expedido = resultado[1]
                 print("Tiempo transcurrido desde creacion de boleto:", minutos_transcurridos_expedido)
-
+                minutos_transcurridos_consulta =  minutos_transcurridos_consulta+300 #forza utc
                 if minutos_transcurridos_consulta > 14:
                     content = {
                     "notiBoletoPagado": {
@@ -716,15 +777,17 @@ class notiBoletoPagadoApiView(APIView):
                         "impresionTicket": "Compre Walmart",
                         "fechaEntrada": fecha_boleto_amd_walmart,
                         "horaEntrada": hora_boleto_walmart,
-                        "fechaCobro": str(fecha_consulta_walmart),
-                        "horaCobro": str(hora_consulta)[:6],
+                        #"fechaCobro": str(fecha_consulta_walmart),
+                        #"horaCobro": str(hora_consulta)[:6],
+                        "fechaCobro": str(fecha_actual),
+                        "horaCobro": str(hora_actual),
                         "duracion": str(minutos_transcurridos_expedido)+" min",
                         "codRepuesta": "00",
                         "codigoError": "05",
                         "descripcionError": "Tiempo agotado Escanea boleto nuevamente",
                         "montoNuevo": float(monto_resultado),
                         "tiempoAdicional": "10 min",
-                        "numAutorizacion": str(random.randrange(1,999999))
+                        "numAutorizacion": ""
                 }
                 }
                     return Response(content)
@@ -781,7 +844,7 @@ class notiBoletoPagadoApiView(APIView):
                     "codRepuesta": "01",
                     "codigoError": "02",
                     "descripcionError": "BOLETO PREVIAMENTE PAGADO.",
-                    "numAutorizacion": str(random.randrange(1,999999))
+                    "numAutorizacion": ""
                 }
                 }
                     return Response(content)
@@ -796,8 +859,10 @@ class notiBoletoPagadoApiView(APIView):
                         "impresionTicket": "Compre Walmart",
                         "fechaEntrada": fecha_boleto_amd_walmart,
                         "horaEntrada": hora_boleto_walmart,
-                        "fechaCobro": str(fecha_consulta_walmart),
-                        "horaCobro": str(hora_consulta)[:6],
+                        #"fechaCobro": str(fecha_consulta_walmart),
+                        #"horaCobro": str(hora_consulta)[:6],
+                        "fechaCobro": str(fecha_actual),
+                        "horaCobro": str(hora_actual),
                         "duracion": str(minutos_transcurridos_expedido)+" min",
                         "codRepuesta": "00",
                         "codigoError": "00",
@@ -818,7 +883,7 @@ class notiBoletoPagadoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "02",
                 "descripcionError": "BOLETO NO VALIDO",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
                 print("No se encontro:",boleto)
@@ -833,7 +898,7 @@ class notiBoletoPagadoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "02",
                 "descripcionError": "BOLETO NO VALIDO.",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
         return Response(content)
@@ -861,6 +926,40 @@ class revBoletoPagadoApiView(APIView):
         #print("Dia: ",idBoleto[2:4])
         calculador = Calculador()
         try: #try
+            print (len(idBoleto))
+            if len(idBoleto) == 20:
+                proovedor = idBoleto[0:2]
+                if int(proovedor) == 12:
+                    pass
+                else:
+                    content = {
+                    "consultaBoleto": {
+                    "idBoleto": idBoleto,
+                    "impresionPantalla": "Gracias por su compra",
+                    "impresionTicket": "Compre Walmart",
+                    "codRepuesta": "01",
+                    "codigoError": "02",
+                    "descripcionError": "BOLETO NO VALIDO",
+                    "numAutorizacion": ""
+                    }
+                    }
+                    print("Proveedor invalido:",idBoleto)
+                    return Response(content)
+            else:
+                content = {
+                "consultaBoleto": {
+                "idBoleto": idBoleto,
+                "impresionPantalla": "Gracias por su compra",
+                "impresionTicket": "Compre Walmart",
+                "codRepuesta": "01",
+                "codigoError": "02",
+                "descripcionError": "BOLETO NO VALIDO",
+                "numAutorizacion": ""
+                }
+                }
+                print("Longitud de id incorrecta:",idBoleto)
+                return Response(content)
+
             tienda = Tienda.objects.filter(id_tienda=tda,activo=True)
             print("Tienda:",tienda)
             det_estacionamiento = idBoleto[14:18]
@@ -876,7 +975,7 @@ class revBoletoPagadoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "04",
                 "descripcionError": "COBRO NO HABILITADO PARA ESTA TIENDA",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
 
@@ -886,8 +985,8 @@ class revBoletoPagadoApiView(APIView):
 
             #Obtener datos
             proovedor = idBoleto[0:2]
-            dia_boleto = idBoleto[2:4]
-            mes_boleto = idBoleto[4:6]
+            mes_boleto = idBoleto[2:4]
+            dia_boleto = idBoleto[4:6]
             anio_boleto = idBoleto[6:8]
             hora_boleto = idBoleto[8:10]
             minuto_boleto = idBoleto[10:12]
@@ -939,7 +1038,7 @@ class revBoletoPagadoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "01",
                 "descripcionError": "REVERSO INCORRECTO",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
                 print("No se encontro:",boleto)
@@ -953,7 +1052,7 @@ class revBoletoPagadoApiView(APIView):
                 "codRepuesta": "01",
                 "codigoError": "02",
                 "descripcionError": "BOLETO NO VALIDO.",
-                "numAutorizacion": str(random.randrange(1,999999))
+                "numAutorizacion": ""
                 }
                 }
         return Response(content)
@@ -962,9 +1061,6 @@ class revBoletoPagadoApiView(APIView):
 
 #@method_decorator(staff_member_required, name="dispatch")
 
-
-from rest_framework import serializers
-from .serializers import  BoletoSerializer, TransaccionSerializer
 
 class consultarTransaccion(APIView):
     def post(self, request):
