@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from transaccion.models import Transaccion, Tienda, Boleto
 from equipo.models import Equipo
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
+
 from django.db.models import Sum, Q, Count
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
@@ -10,7 +11,7 @@ from django.views.generic.list import ListView
 from .Calculador import Calculador
 from django.utils.timezone import now
 import random
-
+import pytz
 #Vista consultarTransaccion2
 from rest_framework import serializers
 from .serializers import  BoletoSerializer, TransaccionSerializer
@@ -155,17 +156,28 @@ class consultaBoletoApiView(APIView):
             segundo_boleto = idBoleto[12:14]
             det_estacionamiento = idBoleto[14:18]
             entrada = idBoleto[18:20]
+
+            '''
+            - Obtener estado del boleto antes de calcular tarifa
+            - Estado 1 Sin previo pago: permitir realizar el pago
+            - Estado 2 Pagado: Realizar calculo de tiempo a partir del ultimo pago/transaccion registrada 
+                Nota: Se resuelven dos vistas pendientes en este paso
+            - Estado 3 Obsoleto: No permitir el pago
+            '''
+
             fecha_boleto = dia_boleto + "-" + mes_boleto + "-" + anio_boleto
             hora_boleto = hora_boleto + ":" + minuto_boleto + ":" + segundo_boleto
             sec = datetime.strptime("01:00:31", '%H:%M:%S')
             fechahora_boleto = datetime.strptime(str(fecha_boleto)+" "+str(hora_boleto), '%d-%m-%y %H:%M:%S')
 
+            
+
             fecha_actual = datetime.now().strftime('%d-%m-%y')
             hora_actual = datetime.now().strftime('%H:%M:%S')
             resultado = calculador.calcular_tarifa(str(fecha_actual),str(hora_actual),str(fecha_boleto),str(hora_boleto),0)
+            
             monto = resultado [0]
             tiempo_estacionado = resultado [1]
-            #monto = resultado [0]
             print("fecha_hora: ",fechahora_boleto)
             print("entrada",entrada)
 
@@ -181,39 +193,64 @@ class consultaBoletoApiView(APIView):
                 "monto": "",
                 "codRepuesta": "01",
                 "codigoError": "03",
-                "descripcionError": "Boleto con tiempo de tolerancia vigente (15 MIN)",
+                "descripcionError": "Boleto con tiempo de tolerancia vigente ({} MIN)".format(tiempo_tolerancia-tiempo_estacionado),
                 "numAutorizacion": ""
                 }
                 }
                 return Response(content)
 
 
-            print("hoal")
-            print(datetime.today(),type(str(datetime.today())),fechahora_boleto)
-            boleto = Boleto.objects.filter(fecha_expedicion_boleto=fechahora_boleto,entrada=entrada).update(updated=str(datetime.today()))
 
             boleto = Boleto.objects.filter(fecha_expedicion_boleto=fechahora_boleto,entrada=entrada)
-            """
-            {
-            "id": 2,
-            "no_provedor": "09",
-            "fecha_expedicion_boleto": "2021-08-02T15:10:00Z",
-            "det_estacionamiento": "0001",
-            "expedidor_boleto": 1,
-            "codigo": 1,
-            "registrado": true,
-            "monto": 10,
-            "cambio": 10,
-            "monedas": "0:0",
-            "billetes": "1:1",
-            "cambio_entregado": "1:10",
-            "created": "2021-08-02T12:10:00Z",
-            "updated": "2021-08-05T14:51:15.759221Z",
-            "folio_boleto": 2,
-            "equipo_id": 1
-        }
-            """
+            
+            
             if boleto:
+
+                estado = boleto[0].estado
+                folio_boleto = boleto[0].id
+
+                if estado == 1:
+                    #Actualiza la hora de consulta en el campo update
+                    print(datetime.today(),type(str(datetime.today())),fechahora_boleto)
+                    Boleto.objects.filter(fecha_expedicion_boleto=fechahora_boleto,entrada=entrada).update(updated=str(datetime.today()))
+                    
+                    """fa = datetime.now().strftime('%Y-%m-%d')
+                    ha = datetime.now().strftime('%H:%M:%S')
+                    fechahora_actual = datetime.strptime(fa + " " + ha , '%Y-%m-%d %H:%M:%S')
+                    print("fechahora_actual",fechahora_actual)
+                    fecha_actual = datetime.now().strftime('%d/%m/%y')
+                    hora_actual = datetime.now().strftime('%H:%M')
+                    print("Hora y fecha actual:", fecha_actual, hora_actual)
+
+                    fechahora_actual = datetime.now().strftime('%d-%m-%y %H:%M:%S')
+                    utc_dt = pytz.timezone ("America/Mexico_City").localize(datetime.strptime (fechahora_actual, "%d-%m-%y %H:%M:%S"), is_dst=None).astimezone(pytz.utc)
+                    f = utc_dt.strftime ("%d-%m-%y %H:%M:%S")
+                    print(utc_dt)
+                    Boleto.objects.filter(fecha_expedicion_boleto=fechahora_boleto,entrada=entrada).update(updated=utc_dt)
+                    """
+
+
+                elif estado == 2:
+                    transacciones = Transaccion.objects.filter(folio_boleto=folio_boleto)
+                    print("Transacciones:", transacciones)
+                    pass
+
+                elif estado == 3:
+                    content = {
+                    "consultaBoleto": {
+                    "idBoleto": idBoleto,
+                    "impresionPantalla": "Gracias por su compra",
+                    "impresionTicket": "Compre Walmart",
+                    "codRepuesta": "01",
+                    "codigoError": "02",
+                    "descripcionError": "BOLETO NO VALIDO",
+                    "numAutorizacion": ""
+                    }
+                    }
+                    print("Boleto obsoleto:",idBoleto)
+                    return Response(content)
+
+
                 print("Se encontro:",boleto)
                 print("Folio Boletoo:", boleto[0].folio_boleto,boleto[0].id)
 
@@ -274,7 +311,7 @@ class registroBoletoApiView(APIView):
         folio = self.request.data.get('registroBoletoRequest').get('folio')
         entrada = self.request.data.get('registroBoletoRequest').get('entrada')
         fecha_expedicion = self.request.data.get('registroBoletoRequest').get('fecha_expedicion')
-        codigo = self.request.data.get('registroBoletoRequest').get('codigo')
+        estado = self.request.data.get('registroBoletoRequest').get('estado')
         registrado = self.request.data.get('registroBoletoRequest').get('registrado')
         tda = self.request.data.get('registroBoletoRequest').get('tienda')
         print("folio:  , tienda: ",folio,tda)
@@ -300,19 +337,21 @@ class registroBoletoApiView(APIView):
 
 
             print("fecha_hora: ",fechahora_boleto)
-            print("entrada",entrada)
+            print("entrada: ",entrada)
 
             equipo = Equipo.objects.filter(id=1)
+            print(equipo)
             boleto = Boleto.objects.create(
                                                 fecha_expedicion_boleto=fechahora_boleto,
                                                 folio_boleto=folio,
                                                 entrada=entrada,
-                                                codigo=codigo,
+                                                estado=estado,
                                                 registrado=registrado,
                                                 equipo_id=equipo[0],
                                                 tienda_id=tienda[0],
                                                 )
-
+            
+            print(equipo,boleto)
             if boleto:
                 print("Se encontro:",boleto)
                 #print("Monto: ", boleto[0].monto)
@@ -325,6 +364,7 @@ class registroBoletoApiView(APIView):
                     'descripcionError': "Registro exitoso",
                     }
                 }
+                print("Boleto Registrado: ", boleto)
             else:
                 content = {
                 'registroBoleto':{
@@ -335,6 +375,7 @@ class registroBoletoApiView(APIView):
 
                 }
                 print("No se encontro:",boleto)
+                return Response(content)
         else: #except
             print("Error al extraer datos")
             content = {
@@ -756,7 +797,11 @@ class notiBoletoPagadoApiView(APIView):
                 #print("minutos totales: {}".format(minutos_transcurridos_consulta))
                 print("Minutos transcurridos desde consulta de boleto:", minutos_transcurridos_consulta)
                 print("FECHASS:", fecha_consulta,fecha_boleto)
-                resultado = calculador.calcular_tarifa(str(fecha_consulta), str(hora_consulta)[:8], str(fecha_boleto),str(hora_boleto),0)
+                #resultado = calculador.calcular_tarifa(str(fecha_consulta), str(hora_consulta)[:8], str(fecha_boleto),str(hora_boleto),0)
+                fecha_actual_amd = datetime.now().strftime('%d-%m-%y')
+                hora_actual_amd = datetime.now().strftime('%H:%M:%S')
+                print("Datos calculo:",fecha_actual_amd, hora_actual_amd,fecha_boleto,hora_boleto)
+                resultado = calculador.calcular_tarifa(str(fecha_actual_amd), str(hora_actual_amd), str(fecha_boleto),str(hora_boleto),0)                
                 print("RESULTADO:",resultado)
                 """asr = asr
                 dias = resultado[0]
@@ -818,9 +863,10 @@ class notiBoletoPagadoApiView(APIView):
 
 
                 try:
+                    fechahora_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     transaccion = Transaccion.objects.create(     no_provedor=proovedor,
                                                     det_estacionamiento=det_estacionamiento,
-                                                    fecha_pago=fechahora_consulta,
+                                                    fecha_pago=fechahora_actual,
                                                     expedidor_boleto=entrada,
                                                     codigo="2",
                                                     registrado=True,
